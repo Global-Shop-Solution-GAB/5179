@@ -1,0 +1,108 @@
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String, "")
+
+'This project was created for Renlita Doors North America, LLC
+'By FEQ on 8/30/2018
+'This puts a browser for a specific set of options on teh script 1 button of the Project Manager header that will populate the USER 2 textbox.
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+F.Intrinsic.Control.Case(40401)
+	'Hook 40401 is teh populate hook. 
+	F.Intrinsic.Control.CallSub("PopulateScreenHook")
+	F.Intrinsic.Control.CallSub("CheckForProj")
+	
+F.Intrinsic.Control.Case(40402)
+	'Hook 40402 is the script 1 hook. This will populate the browser and if they select an option, it will populate the User 2 textbox with that selection
+	F.Intrinsic.Control.CallSub("Browser")
+	
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.PopulateScreenHook.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String, "")
+
+'We need to lock the USER field 2 textbox (Passed Var 000028) and rename the script 1 button (Passed Var 000057)
+F.Intrinsic.UI.ChangeCallerProperty(Variable.Passed.000028, "LOCK", 1)
+V.Passed.000057.Set("Change Status")	
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.PopulateScreenHook.End
+
+Program.Sub.Browser.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String, "")
+V.Local.sData.Declare(String, "")
+V.Local.sColumn.Declare(String, "Status")
+V.Local.sRet.Declare(String, "")
+V.Local.iWidth.Declare(Long, 50)
+
+'They have a set number of options to select from.
+V.Local.sData.Set("Shop Drawing*!*Awaiting Approval*!*Approved*!*Production*!*Installation*!*Backlog*!*On Hold-Pending CO")
+F.Intrinsic.UI.BrowserFromString("Change Status", V.Local.sData, "$", "*!*", V.Local.sColumn, V.Local.iWidth, V.Local.sRet)
+'If they do not select cancel, we are going to set User Field 2 as the selected value
+F.Intrinsic.Control.If(V.Local.sRet.Trim, <>, "***CANCEL***")
+	V.Passed.000028.Set(V.Local.sRet)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Browser.End
+
+Program.Sub.Unload.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String, "")
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.Unload.End
+
+Program.Sub.CheckForProj.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String, "")
+V.Local.sSql.Declare(String, "")
+V.Local.sProject.Declare(String, "")
+
+
+F.Intrinsic.String.Build("Select TOP 1 Project from GCG_5179_ProjDash Where USER_NO = '{0}' and TERMINAL = '{1}' Order by OrdKey DESC", V.Caller.User.Trim, V.Caller.Terminal, V.Local.sSQL)
+F.ODBC.Connection!conx.OpenCompanyConnection
+F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.sSql, V.Local.sProject)
+F.Intrinsic.Control.If(V.Local.sProject, <>, "")
+	V.Passed.000002.Set(V.Local.sProject.Trim)
+	
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("Delete from GCG_5179_ProjDash where TERMINAL = '{0}'", V.Caller.Terminal, V.Local.sSql)
+F.ODBC.Connection!conx.Execute(V.Local.sSql)
+F.ODBC.Connection!conx.Close
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckForProj.End
